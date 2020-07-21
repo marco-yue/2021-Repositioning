@@ -10,26 +10,21 @@ class Dispatch(object):
     
     def Get_prob(self,ratio):
         
-        prob= 1/(1+np.exp(-1*ratio))
+        prob = 1- np.exp(-1*ratio)
         
-        if prob>ratio:
-            
-            return ratio
-        
-        else:
-        
-            return prob
+        return prob
 
     def random_dispatch(self):
         
         ratio=float(len(self.order_arr))/len(self.driver_arr)
+
         prob=self.Get_prob(ratio)
-        if np.random.rand()<=prob:
-            dispatched_num=int(np.ceil(prob*len(self.driver_arr)))
-            dispatched_num=min(dispatched_num,len(self.order_arr))
-        else:
-            dispatched_num=0
-        dispatched_order={};dispatched_driver={}
+
+        dispatched_num=int(np.floor(len(self.driver_arr)*prob))
+
+        dispatched_order={};
+
+        dispatched_driver={}
         
         driver_pool=random.sample(self.driver_arr,dispatched_num)
         

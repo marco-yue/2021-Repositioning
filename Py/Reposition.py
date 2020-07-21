@@ -22,7 +22,7 @@ class Reposition(object):
 
         for driver_id, action_list in Repositioning_Dirver.items():
         
-            action_dic={a:self.Order_count[str(a)+'-'+str(step+1)] for a in action_list}
+            action_dic={a:self.Order_count[str(a)+'-'+str(step)] for a in action_list}
 
             if sum(action_dic.values())!=0:
             
@@ -38,7 +38,7 @@ class Reposition(object):
             
         return Repositioning_action
 
-    def MCMF_reposition(self,Destination_list,Repositioning_Dirver,Cost_dic,Capacity_dic):
+    def MCMF_reposition(self,Driver_list,Destination_list,Destination_Space,Cost_dic,Capacity_dic):
 
         '''
         Input: Driver_list,Destination_list,Destination_action,Cost_dic,Capacity_dic
@@ -48,7 +48,7 @@ class Reposition(object):
 
         Destination_list=['g1','g2','g3','g4','g5']
 
-        Destination_dic={'d1':['g1','g2','g3'],'d2':['g2','g3','g4'],'d3':['g3','g4','g5']}
+        Destination_Space={'d1':['g1','g2','g3'],'d2':['g2','g3','g4'],'d3':['g3','g4','g5']}
 
         Cost_={'d1':{'g1':-2,'g2':-5,'g3':-3},'d2':{'g2':-4,'g3':-3,'g4':-5},'d3':{'g3':-2,'g4':-6,'g5':-7}}
 
@@ -61,10 +61,6 @@ class Reposition(object):
         '''
 
         '''Param'''
-
-        Driver_list=list(Repositioning_Dirver.keys())
-
-
 
         Driver_dic={}
 
@@ -86,17 +82,19 @@ class Reposition(object):
 
         Destination_Reverse={}
 
-        for grid,grid_idx in Destination_dic.items():
+        for dest,dest_idx in Destination_dic.items():
 
-            Destination_Reverse[grid_idx]=grid
+            Destination_Reverse[dest_idx]=dest
 
 
         Node_size=2+len(Driver_list)+len(Destination_list)
 
         cost=np.ones([Node_size,Node_size])*float('inf')
+        
         capacity=np.zeros([Node_size,Node_size])
 
         for i in range(Node_size):
+            
             cost[i][i]=0.0
 
         '''Generate the cost matrix and capacity matrix'''
@@ -107,17 +105,17 @@ class Reposition(object):
 
             cost[0][driver_idx]=0.0
 
-            for grid in Repositioning_Dirver[driver]:
+            for dest in Destination_Space[driver]:
 
-                grid_idx=Destination_dic[grid]
+                dest_idx=Destination_dic[dest]
 
-                capacity[driver_idx][grid_idx]=Capacity_dic[grid]
+                capacity[driver_idx][dest_idx]=1.0
 
-                cost[driver_idx][grid_idx]=Cost_dic[driver][grid]
+                cost[driver_idx][dest_idx]=-1*Cost_dic[driver][dest]
 
-                capacity[grid_idx][-1]=1.0
+                capacity[dest_idx][-1]=Capacity_dic[dest]
 
-                cost[grid_idx][-1]=0.0
+                cost[dest_idx][-1]=0.0
 
         source=0;sink=Node_size-1
 
