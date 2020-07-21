@@ -1,7 +1,7 @@
 """
 Author: Marco Yue
 
-Abstract: employing Hotspot distributed walking
+Abstract: employing Hotspot distributed walking strategy
 
 Date: 2020-07-21
 
