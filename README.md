@@ -1,6 +1,6 @@
-# Repositioning-tasks-of-NYC
+# Collaborative Mutil-agent planning of autonomous taxis: A Case Study in New York Manhattan island
 
 
- Hello, everyone, welcome to the projects of "New York autonomous taxi intelligent fleet management" projects.
+ Hello, everyone, welcome to the "New York autonomous taxi intelligent planning" projects.
  
  
