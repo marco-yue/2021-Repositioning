@@ -6,6 +6,7 @@ import random
 import Graph
 from Graph import Graph
 import pulp
+from Columns_generation import Columns_generation
 
 class Reposition(object):
     
@@ -52,7 +53,7 @@ class Reposition(object):
 
         '''Objective Function'''
 
-        model += (pulp.lpSum([-1 * Cost_[j] * X[(i, j)] for i in Driver_list for j in Destination_list]))
+        model += (pulp.lpSum([-1 * Cost_[i][j] * X[(i, j)] for i in Driver_list for j in Destination_list]))
 
 
 
@@ -82,6 +83,67 @@ class Reposition(object):
                 reposition_action[var[0]]=var[1]
             
         return reposition_action
+
+    def MILP_Column_Generation(self,Driver_list,Destination_list,Cost_,Capacity_):
+
+        '''Testing'''
+
+        CG=Columns_generation(Driver_list,Destination_list,Cost_,Capacity_)
+
+        '''Generate initialized solutions'''
+
+        Solution,K_num=CG.Get_initialization()
+
+
+        '''Columns Generation'''
+
+        count=0
+
+
+        Any_Pricing_Obj=0.01
+
+        while Any_Pricing_Obj>0:
+
+            Any_Pricing_Obj=0
+            
+            count+=1
+            
+            '''Solve the RMP'''
+            
+            Lambda,RMP=CG.Get_RMP(Solution,K_num)
+
+            RMP.solve()
+            
+            Rep_action=CG.Get_solution(Lambda,Solution)
+
+            Dual=[RMP.constraints[i].pi for i in RMP.constraints]
+            
+            '''Construct the Pricing problem'''
+
+            for a in Destination_list:
+
+                Y,Pricing=CG.Get_Pricing(Dual,a)
+
+                Pricing.solve()
+                
+                if pulp.value(Pricing.objective):
+
+                    if pulp.value(Pricing.objective)>0:
+
+                        Any_Pricing_Obj=pulp.value(Pricing.objective)
+
+                        '''Generate new columns'''
+
+                        Y_=np.array([[Y[var].varValue for var in Y]],dtype='int')
+
+                        Solution[a]=np.append(Solution[a],Y_,axis=0)
+
+                        K_num[a]+=1
+
+                        break
+
+        return Rep_action
+
 
     def MCMF_reposition(self,Driver_list,Destination_list,Destination_Space,Cost_dic,Capacity_dic):
 
@@ -156,7 +218,7 @@ class Reposition(object):
 
                 capacity[driver_idx][dest_idx]=1.0
 
-                cost[driver_idx][dest_idx]=-1*Cost_dic[dest]
+                cost[driver_idx][dest_idx]=-1*Cost_dic[driver][dest]
 
                 capacity[dest_idx][-1]=Capacity_dic[dest]
 

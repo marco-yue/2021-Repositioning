@@ -40,3 +40,10 @@ class Stamp_transition(object):
             return t_step-end_step
         else:
             return t_step
+            
+    def Get_Yesterday(self,date_str):
+
+        Yesterday=datetime.datetime.strptime(date_str, "%Y-%m-%d").date() + datetime.timedelta(days = -1)
+
+        return str(Yesterday.strftime('%Y-%m-%d'))
+
