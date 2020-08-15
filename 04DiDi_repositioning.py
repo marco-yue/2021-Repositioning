@@ -30,10 +30,25 @@ from Dispatch import Dispatch
 import Reposition
 from Reposition import Reposition
 
+from Stamp_transition import Stamp_transition
+
 def flatten(seq):
+
     s=str(seq).replace('[', '').replace(']', '') 
     s=[eval(x) for x in s.split(',') if x.strip()]
     return list(set(s))
+
+
+def Compute_Delta(threhold,O_num):
+
+    denominator=np.log(1/(1-threhold))
+    return int(O_num/denominator)
+
+def Get_utility(O_num,D_num):
+    
+    ratio=float(O_num)/D_num
+    
+    return (float(O_num)/(D_num**2))*(dispatch.Get_prob(ratio)+1)
 
 
 
@@ -47,6 +62,8 @@ if __name__ == '__main__':
 
     Save_path='./Data/MCMF/'
 
+    driver_num=3000
+
 
     '''Param'''
 
@@ -54,11 +71,7 @@ if __name__ == '__main__':
 
     speed=3.0
 
-    Prob_=0.8
-
-    threshold=np.log(1/(1-Prob_)) 
-
-    driver_num=3000
+    Prob_=0.7
 
     '''Location list'''
 
@@ -92,198 +105,177 @@ if __name__ == '__main__':
 
     '''Driver group'''
 
-    data_str='2019-11-01'
+    stamp_transition=Stamp_transition()
 
-    '''Simulation'''
+    Date_range=stamp_transition.Get_datelist("2019-11-01", "2019-11-07")
 
-    '''Load the Request data'''
-
-    Request_data=pd.read_csv(os.path.join(Daily_path,'Request_data'+data_str+'.csv'))
-
-    Request_data=Request_data.drop(columns=['Unnamed: 0'])
-
-    Request_data=Request_data[['Order_id','Pickup_Location','Dropoff_Location','Pickup_step','Dropoff_step','Reward_unit']]
-    
-    Request_data['Dropoff_step']=Request_data.apply(lambda x:x['Dropoff_step']+1 if x['Dropoff_step']==x['Pickup_step'] else x['Dropoff_step'],axis=1)
-
-    Request_data['Driver_id']=-1
-
-    '''Load the Driver data'''
-
-    Driver_data=pd.read_csv(os.path.join(Load_path,'Driver_data.csv'))
-
-    Driver_data=Driver_data.drop(columns=['Unnamed: 0'])
-    
-    Request_count_dic=np.load(os.path.join(Daily_path,'Request_count_dic'+data_str+'.npy')).item()
-
-    reposition=Reposition(State,Action,Request_count_dic)
-
-    '''Driver Vancant time'''
-
-    Driver_Vacant={}
-
-    for driver_id in range(driver_num):
-
-        Driver_Vacant[driver_id]=0
-
-    for step in range(End_step):
-
-        print(data_str,step)
-
-        driver_count=0
-
-        unserved_order=0
-
-        MCMF_count=0
-
-        Hostspot_count=0
-
-        '''Update drivers quantity'''
-
-        Driver_count_dic={location:0 for location in Location_list}
-        Driver_loc=Driver_data.loc[(Driver_data['step']==step)&(Driver_data['Order_id']==-1)].groupby(['Location_id']).count()[['Driver_id']]
-        Driver_loc['Location_id']=Driver_loc.index
-        Driver_loc=Driver_loc.rename(index=str, columns={"Driver_id": "Driver_Cnt"})
-        Driver_loc=Driver_loc.reset_index(drop=True)
-        for idx,row in Driver_loc.iterrows():
-
-            Driver_count_dic[row['Location_id']]=row['Driver_Cnt']
+    for data_str in Date_range:
 
 
-        '''Ranking'''
+        '''Simulation'''
 
-        Locations_hots=[Driver_count_dic[location]-Request_count_dic[str(location)+'-'+str(step)] for location in Location_list]
+        '''Load the Request data'''
 
-        Ranked_locations=[y[0] for y in sorted(zip(Location_list, Locations_hots),key=lambda x:x[1],reverse=True)]
+        Request_data=pd.read_csv(os.path.join(Daily_path,'Request_data'+data_str+'.csv'))
 
-        '''enumerate the locations'''
+        Request_data=Request_data.drop(columns=['Unnamed: 0'])
 
-        for location in Ranked_locations:
+        Request_data=Request_data[['Order_id','Pickup_Location','Dropoff_Location','Pickup_step','Dropoff_step','Reward_unit']]
+        
+        Request_data['Dropoff_step']=Request_data.apply(lambda x:x['Dropoff_step']+1 if x['Dropoff_step']==x['Pickup_step'] else x['Dropoff_step'],axis=1)
+
+        Request_data['Driver_id']=-1
+
+        '''Load the Driver data'''
+
+        Driver_data=pd.read_csv(os.path.join(Load_path,'Driver_data.csv'))
+
+        Driver_data=Driver_data.drop(columns=['Unnamed: 0'])
+        
+        Request_count_dic=np.load(os.path.join(Daily_path,'Request_count_dic'+data_str+'.npy')).item()
+
+        reposition=Reposition(State,Action,Request_count_dic)
+
+        '''Driver Vancant time'''
+
+        Driver_Vacant={}
+
+        for driver_id in range(driver_num):
+
+            Driver_Vacant[driver_id]=0
+
+        for step in range(End_step):
+
+            print(data_str,step)
+
+            driver_count=0
+
+            unserved_order=0
 
             MCMF_Driver={}
 
             Other_Driver={}
 
-            state=str(location)+'-'+str(step)
+            '''Count the driver quantity at next step'''
 
-            '''Construct the match pool: Request_arr and Driver_arr '''
+            Driver_count_dic={location:0 for location in Location_list}
 
-            Request_arr=list(Request_data.loc[(Request_data['Pickup_step']==step)&(Request_data['Pickup_Location']==location),'Order_id'])
+            '''enumerate the locations'''
 
-            Driver_arr=list(Driver_data.loc[(Driver_data['step']==step)&(Driver_data['Order_id']==-1)&(Driver_data['Location_id']==location),'Driver_id'])
+            for location in Location_list:
 
-            Vacant_Driver_arr=list()
 
-            if len(Driver_arr)!=0:
+                state=str(location)+'-'+str(step)
 
-                dispatch=Dispatch(Request_arr,Driver_arr)
+                '''Construct the match pool: Request_arr and Driver_arr '''
 
-                '''Generate the matched results'''
+                Request_arr=list(Request_data.loc[(Request_data['Pickup_step']==step)&(Request_data['Pickup_Location']==location),'Order_id'])
 
-                Matched_driver,Matched_order=dispatch.random_dispatch()
-                
+                Driver_arr=list(Driver_data.loc[(Driver_data['step']==step)&(Driver_data['Order_id']==-1)&(Driver_data['Location_id']==location),'Driver_id'])
 
-                '''Update the Request info'''
+                if len(Driver_arr)!=0:
 
-                for order_id,driver_id in Matched_order.items():
+                    dispatch=Dispatch(Request_arr,Driver_arr)
 
-                    if driver_id !=-1:
+                    '''Generate the matched results'''
 
-                        '''Update the matched driver info into the Request info'''
+                    Matched_driver,Matched_order=dispatch.random_dispatch()
+                    
 
-                        Request_data.loc[(Request_data['Pickup_step']==step)&(Request_data['Pickup_Location']==location)&(Request_data['Order_id']==order_id),'Driver_id']=driver_id
+                    '''Update the Request info'''
 
-                    else:
+                    for order_id,driver_id in Matched_order.items():
 
-                        unserved_order+=1
+                        if driver_id !=-1:
 
-                '''Update the Driver info'''
+                            '''Update the matched driver info into the Request info'''
 
-                for driver_id,order_id in Matched_driver.items():
+                            Request_data.loc[(Request_data['Pickup_step']==step)&(Request_data['Pickup_Location']==location)&(Request_data['Order_id']==order_id),'Driver_id']=driver_id
 
-                    if order_id!=-1:
+                        else:
 
-                        Driver_Vacant[driver_id]=0
+                            unserved_order+=1
 
-                        '''Get the request info by given order_id'''
+                    '''Update the Driver info'''
 
-                        order_info=Request_data.loc[(Request_data['Pickup_step']==step)&(Request_data['Order_id']==order_id),['Dropoff_Location','Dropoff_step']]
+                    for driver_id,order_id in Matched_driver.items():
 
-                        dropoff_location=int(order_info['Dropoff_Location'])
+                        if order_id!=-1:
 
-                        dropoff_step=int(order_info['Dropoff_step'])
+                            '''Get the request info by given order_id'''
 
-                        Driver_data.loc[(Driver_data['step']==step)&(Driver_data['Location_id']==location)&(Driver_data['Driver_id']==driver_id),'Order_id']=order_id
+                            order_info=Request_data.loc[(Request_data['Pickup_step']==step)&(Request_data['Order_id']==order_id),['Dropoff_Location','Dropoff_step']]
 
-                        Driver_data=Driver_data.append({'Driver_id': driver_id,'Location_id':dropoff_location,'Order_id':-1,'step':dropoff_step}, ignore_index=True)
+                            dropoff_location=int(order_info['Dropoff_Location'])
 
-                        driver_count+=1
+                            dropoff_step=int(order_info['Dropoff_step'])
 
-                    else:
+                            Driver_data.loc[(Driver_data['step']==step)&(Driver_data['Location_id']==location)&(Driver_data['Driver_id']==driver_id),'Order_id']=order_id
 
-                        Vacant_Driver_arr.append(driver_id)
+                            Driver_data=Driver_data.append({'Driver_id': driver_id,'Location_id':dropoff_location,'Order_id':-1,'step':dropoff_step}, ignore_index=True)
 
-                        '''Define the reposition strategy'''    
+                            driver_count+=1
 
-                        if step+1<End_step:
+                            Driver_Vacant[driver_id]=0
 
-                            Driver_Vacant[driver_id]+=1
+                            if dropoff_step==step+1:Driver_count_dic[dropoff_location]+=1
 
-                            '''Calculate the capacity'''
+                        else:
 
-                            Activated_action={}
+                            '''Define the reposition strategy'''    
 
-                            for  a in Action[state]:
+                            if step+1<End_step:
 
-                                Order_quantity=Request_count_dic[str(a)+'-'+str(step+1)]
+                                '''Calculate avaiable destinations'''
 
-                                Driver_quantity=Driver_count_dic[a]
+                                Driver_Vacant[driver_id]+=1
 
-                                Driver_capacity=int(np.ceil(Order_quantity/threshold))
+                                Activated_action={}
 
-                                Activated_action[a]=Driver_capacity
+                                for  a in Action[state]:
 
-                            '''Update drivers'''
+                                    Order_quantity=Request_count_dic[str(a)+'-'+str(step+1)]
 
-                            if max(Activated_action.values())>0 and Driver_Vacant[driver_id]>1:
+                                    Activated_action[a]=Compute_Delta(Prob_,Order_quantity)
 
-                                MCMF_Driver[driver_id]=[a for a,v in Activated_action.items() if v>0]
+                                '''Update drivers'''
 
-                            else:
+                                if max(Activated_action.values())>0:
 
-                                Other_Driver[driver_id]=Action[state]
+                                    MCMF_Driver[driver_id]=[a for a,v in Activated_action.items() if v>0]
+
+                                else:
+
+                                    Other_Driver[driver_id]=location
+
+            if len(Other_Driver)!=0:
+         
+                for driver,loc in Other_Driver.items():
+
+                    Driver_count_dic[loc]+=1
 
             if len(MCMF_Driver)!=0:
 
-                '''Modeify the MCMF_Driver '''
+                '''Update Driver quantity'''
 
-                Candidate_driver=[d for d in Other_Driver.keys()]
+                for driver,loc_list in MCMF_Driver.items():
 
-                buf=int(sum(Activated_action.values())-len(MCMF_Driver))
+                    prob=1.0/float(len(loc_list))
 
-                buf=min(buf,len(Candidate_driver))
+                    for loc in loc_list:
 
-                if buf >0:
-
-                    for k in range(buf):
-
-                        driver_id=Candidate_driver[k]
-
-                        MCMF_Driver[driver_id]=[a for a,v in Activated_action.items() if v>0]
-
-                        del Other_Driver[driver_id]
+                        Driver_count_dic[loc]+=prob
                 
                 '''Driver and Destination'''
             
                 Driver_list=list(MCMF_Driver.keys())
             
                 Destination_list=flatten(list(MCMF_Driver.values()))
-                                    
+                                        
                 '''Cost matrix and Capacity matrix'''
 
-                Cost_={}
-
                 Capacity_={}
+
 
                 for dest in Destination_list:
 
@@ -291,37 +283,41 @@ if __name__ == '__main__':
 
                     Order_quantity=Request_count_dic[dest_state]
 
-                    Driver_quantity=Driver_count_dic[dest]
+                    Capacity_[dest]=Compute_Delta(Prob_,Order_quantity)
 
-                    Driver_capacity=int(np.ceil(Order_quantity/threshold))
 
-                    Capacity_[dest]=Driver_capacity
+                Cost_={}
 
-                    if Driver_quantity!=0:
+                for driver_id in MCMF_Driver.keys():
 
-                        Ratio=float(Order_quantity)/Driver_quantity
+                    Cost_[driver_id]={}
 
-                        Match_prob=dispatch.Get_prob(Ratio)
+                    for dest in Destination_list:
 
-                        cost=(float(Order_quantity)/(Driver_quantity**2))*(Match_prob+1)
+                        if dest not in MCMF_Driver[driver_id]:
 
-                        Cost_[dest]=cost
+                            Cost_[driver_id][dest]=0.0
 
-                    else: 
-                        
-                        Driver_quantity=0.5
+                        else:
+                            
+                            dest_state=str(dest)+'-'+str(step+1)
 
-                        Ratio=float(Order_quantity)/Driver_quantity
+                            Order_quantity=Request_count_dic[dest_state]
 
-                        Match_prob=dispatch.Get_prob(Ratio)
+                            Driver_quantity=Driver_count_dic[dest]
 
-                        cost=(float(Order_quantity)/(Driver_quantity**2))*(Match_prob+1)
+                            if Driver_quantity!=0:
 
-                        Cost_[dest]=cost
-                
-                MCMF_action=reposition.MCMF_reposition(Driver_list,Destination_list,MCMF_Driver,Cost_,Capacity_)
+                                Cost_[driver_id][dest]=Driver_Vacant[driver_id]*Get_utility(Order_quantity,Driver_quantity)
 
-                MCMF_count+=len(MCMF_action)
+                            else: 
+                                
+                                Driver_quantity=0.1
+
+                                Cost_[driver_id][dest]=Driver_Vacant[driver_id]*Get_utility(Order_quantity,Driver_quantity)
+                    
+                MCMF_action=reposition.MILP_Optimization(Driver_list,Destination_list,Cost_,Capacity_)
+
 
 
                 '''Update Drivers location'''
@@ -330,36 +326,24 @@ if __name__ == '__main__':
 
                     Driver_data=Driver_data.append({'Driver_id': driver_id,'Location_id':dest,'Order_id':-1,'step':step+1}, ignore_index=True)
 
-                    Driver_count_dic[location]-=1
 
-                    Driver_count_dic[dest]+=1
-
-
-                MCMF_Fail={d:Action[state] for d in MCMF_Driver.keys() if d not in MCMF_action.keys()}
+                MCMF_Fail={d:Action[state][0] for d in MCMF_Driver.keys() if d not in MCMF_action.keys()}
 
                 Other_Driver=dict(list(Other_Driver.items())+list(MCMF_Fail.items()))
 
 
             '''Other repositioning'''
 
-            # Repositioning_action=reposition.Hotspot_reposition(Other_Driver,step)
-
             for driver_id,dest in Other_Driver.items():
-
-                dest=location
 
                 Driver_data=Driver_data.append({'Driver_id': driver_id,'Location_id':dest,'Order_id':-1,'step':step+1}, ignore_index=True)
 
-                Driver_count_dic[location]-=1
+                            
+            print('Matched Driver:',driver_count)
 
-                Driver_count_dic[dest]+=1
-                        
+            print('Serve ratio:',round(driver_count/(1+float(unserved_order+driver_count)),2))
 
-        print('Matched Driver:',driver_count)
+        Driver_data.to_csv(os.path.join(Save_path,'Driver_data'+data_str+'.csv'))
 
-        print('Serve ratio:',round(driver_count/float(unserved_order+driver_count),2))
-
-    Driver_data.to_csv(os.path.join(Save_path,'Driver_data.csv'))
-
-    Request_data.to_csv(os.path.join(Save_path,'Request_data.csv'))
+        Request_data.to_csv(os.path.join(Save_path,'Request_data'+data_str+'.csv'))
 
