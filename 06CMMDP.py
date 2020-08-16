@@ -49,6 +49,12 @@ def Compute_Delta(threhold,O_num):
     denominator=np.log(1/(1-threhold))
     return int(O_num/denominator)
 
+def Get_utility(O_num,D_num):
+    
+    ratio=float(O_num)/D_num
+    
+    return (float(O_num)/(D_num**2))*(Get_prob(ratio)+1)
+
 
 
 if __name__ == '__main__':
@@ -66,7 +72,20 @@ if __name__ == '__main__':
 
     speed=3.0
 
-    Prob_=0.7
+    Prob_={}
+
+    for t in range(12):
+        Prob_[t]=0.5
+    for t in range(12,42,1):
+        Prob_[t]=0.4
+    for t in range(42,108,1):
+        Prob_[t]=0.7
+    for t in range(108,End_step,1):
+        Prob_[t]=0.8
+
+
+
+
 
     driver_num=3000
 
@@ -167,7 +186,6 @@ if __name__ == '__main__':
         Driver_count=Driver_count[['Pickup_Location','Pickup_step','Driver_Sum']]
 
 
-
         Match_PROB_dic={state:0.0 for state in State}
 
         for idx,row in Driver_count.iterrows():
@@ -197,8 +215,8 @@ if __name__ == '__main__':
 
         '''Instant Reward'''
 
-        Request_fee_dic=np.load(os.path.join(Daily_path,'Request_count_dic'+date_str+'.npy')).item()
-
+        Request_fee_dic=np.load(os.path.join(Daily_path,'Request_fee_dic'+date_str+'.npy')).item()
+        
 
         '''Load the Request data'''
 
@@ -325,7 +343,7 @@ if __name__ == '__main__':
 
                                     Order_quantity=Request_count_dic[str(a)+'-'+str(step+1)]
 
-                                    Activated_action[a]=Compute_Delta(Prob_,Order_quantity)
+                                    Activated_action[a]=Compute_Delta(Prob_[step],Order_quantity)
 
                                 '''Update drivers'''
 
@@ -340,7 +358,6 @@ if __name__ == '__main__':
                                     Other_Driver[driver_id]=Action[state]
 
             if len(Other_Driver)!=0:
-
 
                 Repositioning_action=reposition.Hotspot_reposition(Other_Driver,step)
 
@@ -380,7 +397,7 @@ if __name__ == '__main__':
 
                     Order_quantity=Request_count_dic[dest_state]
 
-                    Capacity_[dest]=Compute_Delta(Prob_,Order_quantity)
+                    Capacity_[dest]=Compute_Delta(Prob_[step],Order_quantity)
 
 
                 Cost_={}
@@ -405,13 +422,15 @@ if __name__ == '__main__':
 
                             ratio=float(Order_quantity)/Driver_quantity
 
-                            Matching_prob=Get_prob(ratio)
+                            # utility=Get_utility(Order_quantity,Driver_quantity)
+
+                            Match_prob=Get_prob(ratio)
 
                             Expected_reward=Q_table[Rep_Driver_state[driver_id]][dest]
 
-                            Instant_reward=Request_fee_dic[dest_state]*Matching_prob
+                            Instant_reward=Request_fee_dic[dest_state]*Match_prob
 
-                            Cost_[driver_id][dest]=(Expected_reward+Instant_reward)*Driver_Vacant[driver_id]       
+                            Cost_[driver_id][dest]=(Expected_reward+Instant_reward)   
                     
                 Rep_action=reposition.MILP_Optimization(Driver_list,Destination_list,Cost_,Capacity_)
 
