@@ -45,41 +45,41 @@ if __name__ == '__main__':
 
 	stamp_transition=Stamp_transition()
 
-	Request_data=pd.read_csv('./Data/Source/yellow_tripdata_2019-11.csv')
+	# Request_data=pd.read_csv('./Data/Source/yellow_tripdata_2019-11.csv')
 
-	Request_data=Request_data[['PULocationID','DOLocationID','tpep_pickup_datetime','tpep_dropoff_datetime','fare_amount']]
+	# Request_data=Request_data[['PULocationID','DOLocationID','tpep_pickup_datetime','tpep_dropoff_datetime','fare_amount']]
 
-	Request_data.columns =['Pickup_Location','Dropoff_Location','Pickup_time','Dropoff_time','Reward_unit']
+	# Request_data.columns =['Pickup_Location','Dropoff_Location','Pickup_time','Dropoff_time','Reward_unit']
 
-	'''Location filtering'''
+	# '''Location filtering'''
 
-	Request_data=Request_data.merge(Location_range,left_on='Pickup_Location',right_on='LocationID')
+	# Request_data=Request_data.merge(Location_range,left_on='Pickup_Location',right_on='LocationID')
 
-	Request_data=Request_data[['Pickup_Location','Dropoff_Location','Pickup_time','Dropoff_time','Reward_unit']]
+	# Request_data=Request_data[['Pickup_Location','Dropoff_Location','Pickup_time','Dropoff_time','Reward_unit']]
 
-	Request_data=Request_data.merge(Location_range,left_on='Dropoff_Location',right_on='LocationID')
+	# Request_data=Request_data.merge(Location_range,left_on='Dropoff_Location',right_on='LocationID')
 
-	Request_data=Request_data[['Pickup_Location','Dropoff_Location','Pickup_time','Dropoff_time','Reward_unit']]
+	# Request_data=Request_data[['Pickup_Location','Dropoff_Location','Pickup_time','Dropoff_time','Reward_unit']]
 
-	'''Time filtering'''
+	# '''Time filtering'''
 
-	Request_data['Pickup_Date']=Request_data.apply(lambda x:x['Pickup_time'][:10],axis=1)
+	# Request_data['Pickup_Date']=Request_data.apply(lambda x:x['Pickup_time'][:10],axis=1)
 
-	Request_data['Dropoff_Date']=Request_data.apply(lambda x:x['Dropoff_time'][:10],axis=1)
+	# Request_data['Dropoff_Date']=Request_data.apply(lambda x:x['Dropoff_time'][:10],axis=1)
 
-	Request_data['Pickup_step']=Request_data.apply(lambda x:stamp_transition.Get_step(stamp_transition.Get_stamp(x['Pickup_time']),x['Pickup_Date'],600),axis=1)
+	# Request_data['Pickup_step']=Request_data.apply(lambda x:stamp_transition.Get_step(stamp_transition.Get_stamp(x['Pickup_time']),x['Pickup_Date'],600),axis=1)
 
-	Get_Travel_time=lambda loc1,loc2:int(np.ceil(Network_Distance[Location_ID_dic_reverse[loc1]][Location_ID_dic_reverse[loc2]]/speed))
+	# Get_Travel_time=lambda loc1,loc2:int(np.ceil(Network_Distance[Location_ID_dic_reverse[loc1]][Location_ID_dic_reverse[loc2]]/speed))
 
-	Request_data['Dropoff_step']=Request_data.apply(lambda x:x['Pickup_step']+Get_Travel_time(x['Pickup_Location'],x['Dropoff_Location']),axis=1)
+	# Request_data['Dropoff_step']=Request_data.apply(lambda x:x['Pickup_step']+Get_Travel_time(x['Pickup_Location'],x['Dropoff_Location']),axis=1)
 
-	Request_data['Dropoff_step']=Request_data.apply(lambda x:x['Dropoff_step']+1 if x['Dropoff_step']==x['Pickup_step'] else x['Dropoff_step'],axis=1)
+	# Request_data['Dropoff_step']=Request_data.apply(lambda x:x['Dropoff_step']+1 if x['Dropoff_step']==x['Pickup_step'] else x['Dropoff_step'],axis=1)
 
-	Request_data['Order_id']=Request_data.index
+	# Request_data['Order_id']=Request_data.index
 
-	Request_data=Request_data[['Order_id','Pickup_Location','Dropoff_Location','Pickup_step','Dropoff_step','Reward_unit','Pickup_Date','Dropoff_Date']]
+	# Request_data=Request_data[['Order_id','Pickup_Location','Dropoff_Location','Pickup_step','Dropoff_step','Reward_unit','Pickup_Date','Dropoff_Date']]
 
-	Request_data.to_csv('./Data/Processed/Request_data.csv')
+	# Request_data.to_csv('./Data/Processed/Request_data.csv')
 
 
 	'''Split by date'''
@@ -95,141 +95,168 @@ if __name__ == '__main__':
 	    R=Request_data.loc[Request_data['Pickup_Date']==date_]
 	    
 	    R.to_csv('./Data/Daily_Feature/Request_data'+date_+'.csv')
-	    
-	    
-	    '''Count Feature'''
-	    
-	    Request_count=R.groupby(['Pickup_Location','Pickup_step']).count()[['Reward_unit']]
 
-	    Request_count['Transition']=Request_count.index
+	    '''Money Feature'''
 
-	    Request_count['Pickup_Location']=Request_count.apply(lambda x:x['Transition'][0],axis=1)
+	    Request_fee=R.groupby(['Pickup_Location','Pickup_step']).mean()[['Reward_unit']]
 
-	    Request_count['Pickup_step']=Request_count.apply(lambda x:x['Transition'][1],axis=1)
+	    Request_fee['Transition']=Request_fee.index
 
-	    Request_count=Request_count.reset_index(drop=True)
+	    Request_fee['Pickup_Location']=Request_fee.apply(lambda x:x['Transition'][0],axis=1)
 
-	    Request_count['Pickup_state']=Request_count.apply(lambda x:str(x['Pickup_Location'])+'-'+str(x['Pickup_step']),axis=1)
+	    Request_fee['Pickup_step']=Request_fee.apply(lambda x:x['Transition'][1],axis=1)
 
-	    Request_count=Request_count.rename(index=str, columns={'Reward_unit': 'Order_Cnt'})
+	    Request_fee=Request_fee.reset_index(drop=True)
 
-	    Request_count=Request_count[['Pickup_state','Order_Cnt']]
+	    Request_fee['Pickup_state']=Request_fee.apply(lambda x:str(x['Pickup_Location'])+'-'+str(x['Pickup_step']),axis=1)
 
-	    Request_count_dic={state:0.0 for state in State}
+	    Request_fee=Request_fee.rename(index=str, columns={'Reward_unit': 'Request_fee'})
 
-	    for idx,row in Request_count.iterrows():
+	    Request_fee=Request_fee[['Pickup_state','Request_fee']]
+
+	    Request_fee_dic={state:0.0 for state in State}
+
+	    for idx,row in Request_fee.iterrows():
 	    
 	        state=row['Pickup_state']
 	    
-	        Request_count_dic[state]=row['Order_Cnt']
+	        Request_fee_dic[state]=row['Request_fee']
 	    
-	    np.save('./Data/Daily_Feature/Request_count_dic'+date_+'.npy',Request_count_dic)
+	    np.save('./Data/Daily_Feature/Request_fee_dic'+date_+'.npy',Request_fee_dic)
 	    
-	    '''Compute the total quantity'''
+	    '''Count Feature'''
+	    
+	    # Request_count=R.groupby(['Pickup_Location','Pickup_step']).count()[['Reward_unit']]
 
-	    Dest_PROB=R.groupby(['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step']).count()[['Order_id']]
+	    # Request_count['Transition']=Request_count.index
 
-	    Dest_PROB['Transition']=Dest_PROB.index
+	    # Request_count['Pickup_Location']=Request_count.apply(lambda x:x['Transition'][0],axis=1)
 
-	    Dest_PROB['Pickup_Location']=Dest_PROB.apply(lambda x:x['Transition'][0],axis=1)
+	    # Request_count['Pickup_step']=Request_count.apply(lambda x:x['Transition'][1],axis=1)
 
-	    Dest_PROB['Pickup_step']=Dest_PROB.apply(lambda x:x['Transition'][1],axis=1)
+	    # Request_count=Request_count.reset_index(drop=True)
 
-	    Dest_PROB['Dropoff_Location']=Dest_PROB.apply(lambda x:x['Transition'][2],axis=1)
+	    # Request_count['Pickup_state']=Request_count.apply(lambda x:str(x['Pickup_Location'])+'-'+str(x['Pickup_step']),axis=1)
 
-	    Dest_PROB['Dropoff_step']=Dest_PROB.apply(lambda x:x['Transition'][3],axis=1)
+	    # Request_count=Request_count.rename(index=str, columns={'Reward_unit': 'Order_Cnt'})
 
-	    Dest_PROB=Dest_PROB.reset_index(drop=True)
+	    # Request_count=Request_count[['Pickup_state','Order_Cnt']]
 
-	    Dest_PROB=Dest_PROB.rename(index=str, columns={"Order_id": "Order_Cnt"})
+	    # Request_count_dic={state:0.0 for state in State}
 
-	    Dest_PROB=Dest_PROB[['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step','Order_Cnt']]
+	    # for idx,row in Request_count.iterrows():
+	    
+	    #     state=row['Pickup_state']
+	    
+	    #     Request_count_dic[state]=row['Order_Cnt']
+	    
+	    # np.save('./Data/Daily_Feature/Request_count_dic'+date_+'.npy',Request_count_dic)
+	    
+	    # '''Compute the total quantity'''
 
-	    '''Compute the destination quantity'''
+	    # Dest_PROB=R.groupby(['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step']).count()[['Order_id']]
 
-	    TEMP=R.groupby(['Pickup_Location','Pickup_step']).count()[['Order_id']]
+	    # Dest_PROB['Transition']=Dest_PROB.index
 
-	    TEMP['Transition']=TEMP.index
+	    # Dest_PROB['Pickup_Location']=Dest_PROB.apply(lambda x:x['Transition'][0],axis=1)
 
-	    TEMP['Pickup_Location']=TEMP.apply(lambda x:x['Transition'][0],axis=1)
+	    # Dest_PROB['Pickup_step']=Dest_PROB.apply(lambda x:x['Transition'][1],axis=1)
 
-	    TEMP['Pickup_step']=TEMP.apply(lambda x:x['Transition'][1],axis=1)
+	    # Dest_PROB['Dropoff_Location']=Dest_PROB.apply(lambda x:x['Transition'][2],axis=1)
 
-	    TEMP=TEMP.rename(index=str, columns={"Order_id": "Order_Sum"})
+	    # Dest_PROB['Dropoff_step']=Dest_PROB.apply(lambda x:x['Transition'][3],axis=1)
 
-	    TEMP=TEMP.reset_index(drop=True)
+	    # Dest_PROB=Dest_PROB.reset_index(drop=True)
 
-	    TEMP=TEMP[['Pickup_Location','Pickup_step','Order_Sum']]
+	    # Dest_PROB=Dest_PROB.rename(index=str, columns={"Order_id": "Order_Cnt"})
 
-	    Dest_PROB=Dest_PROB.merge(TEMP,on=['Pickup_Location','Pickup_step'])
+	    # Dest_PROB=Dest_PROB[['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step','Order_Cnt']]
+
+	    # '''Compute the destination quantity'''
+
+	    # TEMP=R.groupby(['Pickup_Location','Pickup_step']).count()[['Order_id']]
+
+	    # TEMP['Transition']=TEMP.index
+
+	    # TEMP['Pickup_Location']=TEMP.apply(lambda x:x['Transition'][0],axis=1)
+
+	    # TEMP['Pickup_step']=TEMP.apply(lambda x:x['Transition'][1],axis=1)
+
+	    # TEMP=TEMP.rename(index=str, columns={"Order_id": "Order_Sum"})
+
+	    # TEMP=TEMP.reset_index(drop=True)
+
+	    # TEMP=TEMP[['Pickup_Location','Pickup_step','Order_Sum']]
+
+	    # Dest_PROB=Dest_PROB.merge(TEMP,on=['Pickup_Location','Pickup_step'])
 
 
-	    '''Compute the probability'''
+	    # '''Compute the probability'''
 
-	    Dest_PROB['Prob']=Dest_PROB.apply(lambda x:round(float(x['Order_Cnt']/x['Order_Sum']),2),axis=1)
+	    # Dest_PROB['Prob']=Dest_PROB.apply(lambda x:round(float(x['Order_Cnt']/x['Order_Sum']),2),axis=1)
 
-	    Dest_PROB=Dest_PROB[['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step','Prob']]
+	    # Dest_PROB=Dest_PROB[['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step','Prob']]
 
-	    Dest_PROB['Pickup_state']=Dest_PROB.apply(lambda x:str(int(x['Pickup_Location']))+'-'+str(int(x['Pickup_step'])),axis=1)
+	    # Dest_PROB['Pickup_state']=Dest_PROB.apply(lambda x:str(int(x['Pickup_Location']))+'-'+str(int(x['Pickup_step'])),axis=1)
 
-	    Dest_PROB['Dropoff_state']=Dest_PROB.apply(lambda x:str(int(x['Dropoff_Location']))+'-'+str(int(x['Dropoff_step'])),axis=1)
+	    # Dest_PROB['Dropoff_state']=Dest_PROB.apply(lambda x:str(int(x['Dropoff_Location']))+'-'+str(int(x['Dropoff_step'])),axis=1)
 
-	    Dest_PROB=Dest_PROB[['Pickup_state','Dropoff_state','Prob']]
+	    # Dest_PROB=Dest_PROB[['Pickup_state','Dropoff_state','Prob']]
 
-	    Dest_PROB_dic={}
+	    # Dest_PROB_dic={}
 
-	    for idx,row in Dest_PROB.iterrows():
+	    # for idx,row in Dest_PROB.iterrows():
 
-	        if row['Pickup_state'] not in Dest_PROB_dic.keys():
+	    #     if row['Pickup_state'] not in Dest_PROB_dic.keys():
 
-	            Dest_PROB_dic[row['Pickup_state']]={}
+	    #         Dest_PROB_dic[row['Pickup_state']]={}
 
-	            Dest_PROB_dic[row['Pickup_state']][row['Dropoff_state']]=row['Prob']
+	    #         Dest_PROB_dic[row['Pickup_state']][row['Dropoff_state']]=row['Prob']
 
-	        else:
+	    #     else:
 
-	            Dest_PROB_dic[row['Pickup_state']][row['Dropoff_state']]=row['Prob']
+	    #         Dest_PROB_dic[row['Pickup_state']][row['Dropoff_state']]=row['Prob']
 
-	    np.save('./Data/Daily_Feature/Dest_PROB_dic'+date_+'.npy',Dest_PROB_dic)
+	    # np.save('./Data/Daily_Feature/Dest_PROB_dic'+date_+'.npy',Dest_PROB_dic)
 	    
 	    
 	    '''Gain'''
 	    
-	    Gain_data=R.groupby(['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step']).mean()[['Reward_unit']]
+	    # Gain_data=R.groupby(['Pickup_Location','Pickup_step','Dropoff_Location','Dropoff_step']).mean()[['Reward_unit']]
 
-	    Gain_data['Transition']=Gain_data.index
+	    # Gain_data['Transition']=Gain_data.index
 
-	    Gain_data['Pickup_Location']=Gain_data.apply(lambda x:x['Transition'][0],axis=1)
+	    # Gain_data['Pickup_Location']=Gain_data.apply(lambda x:x['Transition'][0],axis=1)
 
-	    Gain_data['Pickup_step']=Gain_data.apply(lambda x:x['Transition'][1],axis=1)
+	    # Gain_data['Pickup_step']=Gain_data.apply(lambda x:x['Transition'][1],axis=1)
 
-	    Gain_data['Dropoff_Location']=Gain_data.apply(lambda x:x['Transition'][2],axis=1)
+	    # Gain_data['Dropoff_Location']=Gain_data.apply(lambda x:x['Transition'][2],axis=1)
 
-	    Gain_data['Dropoff_step']=Gain_data.apply(lambda x:x['Transition'][3],axis=1)
+	    # Gain_data['Dropoff_step']=Gain_data.apply(lambda x:x['Transition'][3],axis=1)
 
-	    Gain_data=Gain_data.reset_index(drop=True)
+	    # Gain_data=Gain_data.reset_index(drop=True)
 
-	    Gain_data['Pickup_state']=Gain_data.apply(lambda x:str(int(x['Pickup_Location']))+'-'+str(int(x['Pickup_step'])),axis=1)
+	    # Gain_data['Pickup_state']=Gain_data.apply(lambda x:str(int(x['Pickup_Location']))+'-'+str(int(x['Pickup_step'])),axis=1)
 
-	    Gain_data['Dropoff_state']=Gain_data.apply(lambda x:str(int(x['Dropoff_Location']))+'-'+str(int(x['Dropoff_step'])),axis=1)
+	    # Gain_data['Dropoff_state']=Gain_data.apply(lambda x:str(int(x['Dropoff_Location']))+'-'+str(int(x['Dropoff_step'])),axis=1)
 
-	    Gain_data=Gain_data[['Pickup_state','Dropoff_state','Reward_unit']]
+	    # Gain_data=Gain_data[['Pickup_state','Dropoff_state','Reward_unit']]
 
-	    Gain_dic={}
+	    # Gain_dic={}
 
-	    for idx,row in Gain_data.iterrows():
+	    # for idx,row in Gain_data.iterrows():
 
-	        if row['Pickup_state'] not in Gain_dic.keys():
+	    #     if row['Pickup_state'] not in Gain_dic.keys():
 
-	            Gain_dic[row['Pickup_state']]={}
+	    #         Gain_dic[row['Pickup_state']]={}
 
-	            Gain_dic[row['Pickup_state']][row['Dropoff_state']]=row['Reward_unit']
+	    #         Gain_dic[row['Pickup_state']][row['Dropoff_state']]=row['Reward_unit']
 
-	        else:
+	    #     else:
 
-	            Gain_dic[row['Pickup_state']][row['Dropoff_state']]=row['Reward_unit']
+	    #         Gain_dic[row['Pickup_state']][row['Dropoff_state']]=row['Reward_unit']
 	    
-	    np.save('./Data/Daily_Feature/Gain_dic'+date_+'.npy',Gain_dic)
+	    # np.save('./Data/Daily_Feature/Gain_dic'+date_+'.npy',Gain_dic)
 	    
 	    print(date_)
     

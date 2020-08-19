@@ -246,13 +246,17 @@ if __name__ == '__main__':
 
                                 else:
 
-                                    Other_Driver[driver_id]=location
+                                    Other_Driver[driver_id]=Action[state]
 
             if len(Other_Driver)!=0:
-         
-                for driver,loc in Other_Driver.items():
 
-                    Driver_count_dic[loc]+=1
+                Repositioning_action=reposition.Hotspot_reposition(Other_Driver,step)
+
+                for driver_id,dest in Repositioning_action.items():
+
+                    Driver_data=Driver_data.append({'Driver_id': driver_id,'Location_id':dest,'Order_id':-1,'step':step+1}, ignore_index=True)
+
+                    Driver_count_dic[dest]+=1
 
             if len(MCMF_Driver)!=0:
 
@@ -329,19 +333,18 @@ if __name__ == '__main__':
 
                 MCMF_Fail={d:Action[state][0] for d in MCMF_Driver.keys() if d not in MCMF_action.keys()}
 
-                Other_Driver=dict(list(Other_Driver.items())+list(MCMF_Fail.items()))
+            
+                for driver_id,dest in MCMF_Fail.items():
 
-
-            '''Other repositioning'''
-
-            for driver_id,dest in Other_Driver.items():
-
-                Driver_data=Driver_data.append({'Driver_id': driver_id,'Location_id':dest,'Order_id':-1,'step':step+1}, ignore_index=True)
+                    Driver_data=Driver_data.append({'Driver_id': driver_id,'Location_id':dest,'Order_id':-1,'step':step+1}, ignore_index=True)
 
                             
             print('Matched Driver:',driver_count)
 
             print('Serve ratio:',round(driver_count/(1+float(unserved_order+driver_count)),2))
+
+            print('*'*50)
+
 
         Driver_data.to_csv(os.path.join(Save_path,'Driver_data'+data_str+'.csv'))
 

@@ -77,11 +77,11 @@ if __name__ == '__main__':
     for t in range(12):
         Prob_[t]=0.5
     for t in range(12,42,1):
-        Prob_[t]=0.4
+        Prob_[t]=0.3
     for t in range(42,108,1):
         Prob_[t]=0.7
     for t in range(108,End_step,1):
-        Prob_[t]=0.8
+        Prob_[t]=0.85
 
 
 
@@ -430,7 +430,7 @@ if __name__ == '__main__':
 
                             Instant_reward=Request_fee_dic[dest_state]*Match_prob
 
-                            Cost_[driver_id][dest]=(Expected_reward+Instant_reward)   
+                            Cost_[driver_id][dest]=Expected_reward+Instant_reward
                     
                 Rep_action=reposition.MILP_Optimization(Driver_list,Destination_list,Cost_,Capacity_)
 
