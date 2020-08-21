@@ -11,7 +11,7 @@
  
  We process the trip-related dataset in [Data processing procedure](https://github.com/marco-yue/Autonomous-taxis-planning/blob/master/01Preparation.py), other data was avaiable on my [Google Drive](https://drive.google.com/drive/folders/1SGAjXBZg75YRwe7NC7xNWlBJHkkKTTxi?usp=sharing).
  
- If you want to recur our work, you need to download the whole data to replace the ‘data.file’ under this directory.
+ If you want to recur our work, you need to download the whole data to replace the ‘Data.file’ under this directory.
  
  Simulation basic background
  ==
