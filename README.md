@@ -3,26 +3,29 @@
 
  Hello, everyone, welcome to the "New York autonomous taxi intelligent planning" projects.
  
- # Data source
+ Data source
+ ==
  
  
  The data used in this research were collected from taxi data-sets in Manhattan island, New York from November 1st-7st, 2019 on Yellow Cab's website https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page.
  
- # Simulation basic background
+ Simulation basic background
+ ==
  
 
 In the simulation phase, 
 
-1. 3000 autonomous taxis are randomly generated in the network on 00:00 am per day.
+* 3000 autonomous taxis are randomly generated in the network on 00:00 am per day.
 
-2. each day will be treated as an episode with 144 steps in the simulator.
+* each day will be treated as an episode with 144 steps in the simulator.
 
-3. the study area is divided into 67 locations and comprised of 164 edges.
+* the study area is divided into 67 locations and comprised of 164 edges.
 
-# Benchmark heuristics
+Benchmark heuristics
+==
 
 There are two baseline heuristics compared with our approach:
 
-1. Hotspot walk, essentially defines a stochastic policy for each agent, which indicates that the actions will be chosen according to the probability  computed by trips quantity at each step.
+* Hotspot walk, essentially defines a stochastic policy for each agent, which indicates that the actions will be chosen according to the probability  computed by trips quantity at each step.
  
  
