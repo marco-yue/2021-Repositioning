@@ -9,7 +9,9 @@
  
  The data used in this research were collected from taxi data-sets in Manhattan island, New York from November 1st-7st, 2019 on Yellow Cab's website https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page.
  
- We process the primary dataset in [Data processing procedure](https://github.com/marco-yue/Autonomous-taxis-planning/blob/master/01Preparation.py)
+ We process the trip-related dataset in [Data processing procedure](https://github.com/marco-yue/Autonomous-taxis-planning/blob/master/01Preparation.py), other data was avaiable on my [Google Drive](https://drive.google.com/drive/folders/1SGAjXBZg75YRwe7NC7xNWlBJHkkKTTxi?usp=sharing).
+ 
+ If you want to recur our work, you need to download the whole data to replace the ‘data.file’ under this directory.
  
  Simulation basic background
  ==
