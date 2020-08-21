@@ -30,6 +30,10 @@ Benchmark heuristics
 
 There are two baseline heuristics compared with our approach:
 
-* Hotspot walk, essentially defines a stochastic policy for each agent, which indicates that the actions will be chosen according to the probability  computed by trips quantity at each step.
+* [Hotspot walk](https://github.com/marco-yue/Autonomous-taxis-planning/blob/master/03%20Hot_spot.py), essentially defines a stochastic policy for each agent, which indicates that the actions will be chosen according to the probability  computed by trips quantity at each step.
+
+* [DiDi repositioning](https://github.com/marco-yue/Autonomous-taxis-planning/blob/master/04DiDi_repositioning.py), employs a centralized optimization framework to determine the repositioning tasks(next pick-up location) of each taxi. Each task will be assigned by solving the Mixed-integer linear programming (MILP) model.
+
+
  
  
