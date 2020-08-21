@@ -18,5 +18,11 @@ In the simulation phase,
 2. each day will be treated as an episode with 144 steps in the simulator.
 
 3. the study area is divided into 67 locations and comprised of 164 edges.
+
+# Benchmark heuristics
+
+There are two baseline heuristics compared with our approach:
+
+1. Hotspot walk, essentially defines a stochastic policy for each agent, which indicates that the actions will be chosen according to the probability  computed by trips quantity at each step.
  
  
